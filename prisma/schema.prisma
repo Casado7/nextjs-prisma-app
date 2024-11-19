@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql" // Cambiar si usas otro proveedor
+  url      = env("DATABASE_URL")
+}
+
+model Bookings {
+  id                    Int      @id @default(autoincrement())
+  owner_id              Int
+  caregiver_id          Int
+  pet_id                Int
+  service_id            Int
+  start_time            DateTime
+  end_time              DateTime
+  status                Int
+  total_price           Decimal
+  additional_instructions String?
+
+  owner                 Users    @relation("OwnerBookings", fields: [owner_id], references: [id])
+  caregiver             CaregiverProfiles @relation(fields: [caregiver_id], references: [id])
+  pet                   Pets     @relation(fields: [pet_id], references: [id])
+  service               Services @relation(fields: [service_id], references: [id])
+  reviews               Reviews?
+
+  @@map("bookings")
+}
+
+model CaregiverAvailability {
+  id            Int      @id @default(autoincrement())
+  caregiver_id  Int
+  weekday       Int
+  start_time    DateTime
+  end_time      DateTime
+
+  caregiver     CaregiverProfiles @relation(fields: [caregiver_id], references: [id])
+
+  @@map("caregiver_availability")
+}
+
+model CaregiverProfiles {
+  id                 Int      @id @default(autoincrement())
+  user_id            Int      @unique
+  experience         String?
+  description        String?
+  coverage_radius_KM Int
+  verified           Int
+  verification_date  DateTime?
+  average_rating     Decimal
+  total_reviews      Int
+
+  user               Users    @relation(fields: [user_id], references: [id])
+  bookings           Bookings[]
+  rates              CaregiverRates[]
+  availability       CaregiverAvailability[]
+
+  @@map("caregiver_profiles")
+}
+
+model CaregiverRates {
+  id                     Int      @id @default(autoincrement())
+  caregiver_id           Int
+  service_id             Int
+  base_price             Decimal
+  additional_hour_price  Decimal
+
+  caregiver              CaregiverProfiles @relation(fields: [caregiver_id], references: [id])
+  service                Services @relation(fields: [service_id], references: [id])
+
+  @@map("caregiver_rates")
+}
+
+model Pets {
+  id                  Int      @id @default(autoincrement())
+  user_id             Int
+  name                String
+  species             String
+  breed               String?
+  age                 Decimal
+  weight              Decimal
+  special_instructions String?
+  medical_needs       String?
+  is_active           Int
+
+  owner               Users    @relation(fields: [user_id], references: [id])
+  bookings            Bookings[]
+
+  @@map("pets")
+}
+
+model Reviews {
+  id          Int      @id @default(autoincrement())
+  booking_id  Int      @unique
+  rating      Int
+  comment     String?
+
+  booking     Bookings @relation(fields: [booking_id], references: [id])
+
+  @@map("reviews")
+}
+
+model Services {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  min_duration Int
+  max_duration Int
+
+  bookings    Bookings[]
+  rates       CaregiverRates[]
+
+  @@map("services")
+}
+
+model UserRoles {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+
+  users       Users[]
+
+  @@map("user_roles")
+}
+
+model Users {
+  id          Int      @id @default(autoincrement())
+  email       String
+  password    String
+  name        String
+  last_name   String
+  phone       String
+  address     String?
+  latitude    Decimal
+  longitud    Decimal
+  last_login  DateTime?
+  id_user_role Int
+
+  role        UserRoles @relation(fields: [id_user_role], references: [id])
+  pets        Pets[]
+  bookings    Bookings[] @relation("OwnerBookings")
+  caregiverProfile CaregiverProfiles?
+
+  @@map("users")
+}
